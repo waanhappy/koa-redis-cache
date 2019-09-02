@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "noImplicitAny": true,
+    "noImplicitThis": false,
+    "sourceMap": true,
+    "lib": ["es6"],
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {}
+  },
+  "exclude": ["node_modules"],
+  "include": ["./src"]
+}
