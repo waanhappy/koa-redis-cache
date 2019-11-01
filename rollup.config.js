@@ -1,7 +1,9 @@
 import commonjs from 'rollup-plugin-commonjs';
 import babel from 'rollup-plugin-babel';
 import rollupTypescript from 'rollup-plugin-typescript2';
-import pkg from './package.json';
+const name = process.env.npm_package_name;
+const version = process.env.npm_package_version;
+const main = process.env.npm_package_main;
 
 export default [
   // CommonJS (for Node) and ES module (for bundlers) build.
@@ -12,12 +14,20 @@ export default [
   // `file` and `format` for each target)
   {
     input: 'src/index.ts',
-    output: [{ file: pkg.main, format: 'cjs' }],
-    external: ['fs', 'path-to-regexp', 'querystring', 'ioredis'],
+    output: [
+      {
+        file: main,
+        format: 'cjs',
+        banner: `/*!
+* ${name} V${version}
+* For promise
+* Released under the MIT License.
+*/`,
+      },
+    ],
+    external: ['fs', 'path-to-regexp', 'querystring', '@webtanzhi/redis'],
     plugins: [
-      rollupTypescript({
-        noEmit: false,
-      }),
+      rollupTypescript({ noEmit: false }),
       commonjs(),
       babel({
         exclude: '**/node_modules/**',

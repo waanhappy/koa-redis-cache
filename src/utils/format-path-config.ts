@@ -1,8 +1,11 @@
 import pathToRegexp from 'path-to-regexp';
 
+export interface QueryObject {
+  [key: string]: string | number;
+}
 export interface KRCQueryConfig {
   key: string;
-  matcher: (queryObject: { [key: string]: number | string }) => boolean;
+  matcher: (queryObject: QueryObject) => boolean;
 }
 
 export interface KRCPathConfig {
@@ -17,7 +20,7 @@ export interface FormatedPathConfig {
   path: string;
   query?: {
     key: string;
-    matcher?: (queryObject: { [key: string]: number | string }) => boolean;
+    matcher?: (queryObject: QueryObject) => boolean;
   }[];
 }
 

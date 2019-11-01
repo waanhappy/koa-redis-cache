@@ -1,13 +1,15 @@
-import Ioredis, { Redis, RedisOptions } from 'ioredis';
+import { createClient, promisifyClient } from '@webtanzhi/redis';
+import { ClientOpts, RedisClient } from 'redis';
 import { KRCPathConfig, formatPathConfig } from './utils/format-path-config';
 import { getMatchData } from './utils/get-match-data';
 import { ReadStream } from 'fs';
 
 export interface KRCOption {
-  redisOption?: RedisOptions;
-  client?: Redis;
+  redisOption?: ClientOpts;
+  client?: RedisClient;
   paths: (string | KRCPathConfig)[];
   expireSeconds: number;
+  keyPrefix?: string;
 }
 
 export interface CacheData {
@@ -20,13 +22,13 @@ export interface CacheData {
  * @param options 配置项
  */
 export default function(options: KRCOption) {
-  const { redisOption, client, expireSeconds, paths } = options;
-  const redisCli = client || new Ioredis(redisOption);
+  const { redisOption, client, expireSeconds, paths, keyPrefix = 'redis-cache' } = options;
+  const redisCli = client ? promisifyClient(client) : createClient(redisOption);
   const pathConfigs = formatPathConfig(paths, expireSeconds);
 
   async function middleware(ctx: any, next: any) {
     const { path, query } = ctx;
-    const { matched, cacheKey, expire } = getMatchData(pathConfigs, path, query);
+    const { matched, cacheKey, expire } = getMatchData(pathConfigs, keyPrefix, path, query);
     if (!matched) {
       await next();
       return;
@@ -34,7 +36,7 @@ export default function(options: KRCOption) {
 
     try {
       // 获取缓存结果
-      const cacheString = await redisCli.get(cacheKey);
+      const cacheString = await redisCli.asyncGet(cacheKey);
       // 如果有缓存直接响应结果
       if (cacheString) {
         const dataObject = JSON.parse(cacheString);
@@ -43,20 +45,23 @@ export default function(options: KRCOption) {
         return;
       }
     } catch (e) {
-      console.log(e);
+      console.error(e.message);
+      console.error(e.stack);
     }
 
+    await next();
+
     try {
-      await next();
+      const body = ctx.body;
       // 页面缓存
-      if (!(ctx.body instanceof ReadStream)) {
+      if (!(body instanceof ReadStream)) {
         // 缓存
-        redisCli.set(cacheKey, { body: ctx.body, type: ctx.type }, 'EX', expire);
+        redisCli.asyncSet(cacheKey, JSON.stringify({ body, type: ctx.type }), 'EX', expire);
       }
-      return;
     } catch (e) {
       // 输出异常
-      console.log(e);
+      console.error(e.message);
+      console.error(e.stack);
     }
   }
 
